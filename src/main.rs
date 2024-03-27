@@ -1,6 +1,6 @@
 use std::{
     env::{self, current_dir},
-    path::{Path, PathBuf},
+    path::{Path, PathBuf, Prefix},
 };
 
 const HOME_ICON: &str = " ";
@@ -14,14 +14,16 @@ fn main() {
     match anchor {
         Anchor::Home(rel) => println!("{}{}", HOME_ICON, shorten_relative(&rel, false)),
         Anchor::Git(repo, rel) => println!("{}{}{}", GIT_ICON, repo, shorten_relative(&rel, false)),
-        Anchor::Root(rel) => println!("{}{}", ROOT_ICON, shorten_relative(&rel, true)),
+        Anchor::Root(disk, rel) => {
+            println!("{}{}{}", disk, ROOT_ICON, shorten_relative(&rel, true))
+        }
     }
 }
 
 enum Anchor {
     Home(PathBuf),
     Git(String, PathBuf),
-    Root(PathBuf),
+    Root(String, PathBuf),
 }
 
 fn determine_anchor(p: &Path) -> Anchor {
@@ -40,7 +42,22 @@ fn determine_anchor(p: &Path) -> Anchor {
         if let Ok(rel) = p.strip_prefix(home) {
             Anchor::Home(rel.to_path_buf())
         } else {
-            Anchor::Root(p.strip_prefix("/").unwrap().to_path_buf())
+            let (disk, prefix) = if cfg!(target_os = "windows") {
+                match p.components().next().unwrap() {
+                    std::path::Component::Prefix(prefix) => {
+                        if let Prefix::Disk(d) = prefix.kind() {
+                            (format!("{}:", d as char), format!("{}:/", d as char))
+                        } else {
+                            (String::new(), String::from(""))
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            } else {
+                (String::new(), String::from("/"))
+            };
+
+            Anchor::Root(disk, p.strip_prefix(prefix).unwrap().to_path_buf())
         }
     }
 }
