@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf, Prefix},
 };
 
-const HOME_ICON: &str = " ";
+const HOME_ICON: &str = "󰋜 ";
 const GIT_ICON: &str = "󰊢 ";
 const ROOT_ICON: &str = "";
 
